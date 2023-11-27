@@ -18,8 +18,13 @@ public class WelcomeActivity extends AppCompatActivity {
 
     public void logout(View view) {
         FirebaseAuth.getInstance().signOut();
-        startActivity(new Intent(this, GALLARY1Activity.class));
+        startActivity(new Intent(this, LoginActivity.class));
         finish();
+
+    }
+
+    public void go(View view) {
+        startActivity(new Intent(this, GALLARY1Activity.class));
 
     }
 }

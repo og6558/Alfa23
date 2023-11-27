@@ -9,9 +9,12 @@ import androidx.core.content.ContextCompat;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 import android.Manifest;
@@ -31,6 +34,7 @@ public class GALLARY1Activity extends AppCompatActivity {
     ImageView iV;
 
     Uri imageUri;
+    Button btn2;
     StorageReference storageReference;
     public static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 123;
 
@@ -39,6 +43,7 @@ public class GALLARY1Activity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallary1);
         iV = findViewById(R.id.iV);
+        btn2 = findViewById(R.id.btn2);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_EXTERNAL_STORAGE_REQUEST_CODE);
@@ -90,19 +95,23 @@ public class GALLARY1Activity extends AppCompatActivity {
         intent.setType("image/");
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent,100);
+        btn2.setVisibility(View.VISIBLE);
     }
 
     public void show(View view) {
-        // Create a reference with an initial file path and name
-        val pathReference = storageRef.child("images/stars.jpg");
+        storageReference.getBytes(1024 * 1024).addOnSuccessListener(bytes -> {
+            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0 , bytes.length);
+            iV.setImageBitmap(bitmap);
 
-// Create a reference to a file from a Google Cloud Storage URI
-        val gsReference = storage.getReferenceFromUrl("gs://bucket/images/stars.jpg");
+        }).addOnFailureListener(e -> {
 
-// Create a reference from an HTTPS URL
-// Note that in the URL, characters are URL escaped!
-        val httpsReference = storage.getReferenceFromUrl(
-                "https://firebasestorage.googleapis.com/b/bucket/o/images%20stars.jpg");
+            Toast.makeText(this, "Image download failed", Toast.LENGTH_SHORT).show();
+        });
+
     }
 
+    public void go(View view) {
+
+        startActivity(new Intent(this, TextActivity.class));
+    }
 }
