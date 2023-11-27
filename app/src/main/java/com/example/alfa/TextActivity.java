@@ -54,10 +54,10 @@ public class TextActivity extends AppCompatActivity {
     private void saveToFirebase() {
         String text = editText.getText().toString().trim();
         if (!text.isEmpty()) {
-            // Save text to Firebase Database under "textData"
+
             databaseReference.push().setValue(text);
 
-            // Save text to Firebase Database under "textHistory"
+
             historyReference.push().setValue(text);
 
             editText.getText().clear();
@@ -65,14 +65,14 @@ public class TextActivity extends AppCompatActivity {
     }
 
     private void loadLatestFromFirebase() {
-        // Read the most recent text from Firebase Database under "textData"
+
         databaseReference.limitToLast(1).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     String text = snapshot.getValue(String.class);
                     if (text != null) {
-                        displayText.append(text + "\n"); // Append a new line
+                        displayText.append(text + "\n");
                     }
                 }
             }

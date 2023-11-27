@@ -25,7 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:onClick="todAlarm"
-        android:text="Set by Time of day" />
+        android:text="Set Alarm" />
 
     <Space
         android:layout_width="match_parent"
