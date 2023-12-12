@@ -1,7 +1,5 @@
 package com.example.alfa;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.AlarmManager;
 import android.app.DatePickerDialog;
 import android.app.PendingIntent;
@@ -13,6 +11,8 @@ import android.view.View;
 import android.widget.DatePicker;
 import android.widget.TextView;
 import android.widget.TimePicker;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Calendar;
 
@@ -95,5 +95,8 @@ public class TimeActivity extends AppCompatActivity {
                 calSet.getTimeInMillis(), alarmIntent);
 
         tV.setText(String.valueOf(ALARM_RQST_CODE) + " Alarm on " + calSet.getTime());
+    }
+    public void next(View view) {
+        startActivity(new Intent(this, BluetoothAlpha.class));
     }
 }
