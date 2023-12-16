@@ -122,20 +122,55 @@ public class BluetoothAlpha extends AppCompatActivity {
             return;
         }
 
-        if (bluetoothAdapter.isDiscovering()) {
-            // Check Bluetooth state before canceling discovery
-            if (bluetoothAdapter.getState() == BluetoothAdapter.STATE_ON) {
-                // Cancel discovery
-                cancelBluetoothDiscovery();
+        // Ensure Bluetooth visibility is enabled
+        if (bluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+            requestBluetoothVisibility();
+        } else {
+            // Bluetooth visibility is already enabled, start discovery
+            new Handler().postDelayed(() -> {
+                devicesAdapter.clear();
+                devicesList.clear();
+                bluetoothAdapter.startDiscovery();
+            }, 1000); // Delay before starting discovery (adjust as needed)
+        }
+    }
+
+    private void requestBluetoothVisibility() {
+        // Request Bluetooth visibility
+        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300); // Set the duration in seconds
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_ADVERTISE}, REQUEST_BLUETOOTH_ENABLE);
+        } else {
+            startActivityForResult(discoverableIntent, REQUEST_BLUETOOTH_ENABLE);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_BLUETOOTH_ENABLE) {
+            if (resultCode == RESULT_OK) {
+                // Bluetooth visibility is enabled, start discovery
+                new Handler().postDelayed(() -> {
+                    devicesAdapter.clear();
+                    devicesList.clear();
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        return;
+                    }
+                    bluetoothAdapter.startDiscovery();
+                }, 1000); // Delay before starting discovery (adjust as needed)
             } else {
-                // Bluetooth is not in STATE_ON, handle accordingly
-                Toast.makeText(this, "Bluetooth is not in STATE_ON", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Bluetooth visibility request denied", Toast.LENGTH_SHORT).show();
             }
         }
-
-        devicesAdapter.clear();
-        devicesList.clear();
-        bluetoothAdapter.startDiscovery();
     }
 
     private void cancelBluetoothDiscovery() {
@@ -170,9 +205,15 @@ public class BluetoothAlpha extends AppCompatActivity {
         // Connect to the device in a background thread
         new Thread(() -> {
             try {
-                // Create a secure (authenticated and encrypted) RFCOMM BluetoothSocket
+                // Use createRfcommSocketToServiceRecord for Bluetooth communication
                 BluetoothSocket socket = device.createRfcommSocketToServiceRecord(MY_UUID);
+
+                // Cancel discovery before connecting
+                cancelBluetoothDiscovery();
+
+                // Connect to the device
                 socket.connect();
+
                 // Connection successful, update UI in the main thread
                 new Handler(Looper.getMainLooper()).post(() -> {
                     Toast.makeText(this, "Connected to: " + deviceName, Toast.LENGTH_SHORT).show();
@@ -183,7 +224,6 @@ public class BluetoothAlpha extends AppCompatActivity {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     e.printStackTrace();
                     Toast.makeText(this, "Failed to connect to device: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    // In case of an error, you may want to try using createInsecureRfcommSocket or handle the error accordingly.
                 });
             }
         }).start();
@@ -204,6 +244,7 @@ public class BluetoothAlpha extends AppCompatActivity {
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_FOUND);
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED); // New action for bond state changes
         registerReceiver(bluetoothReceiver, filter);
     }
 
@@ -225,6 +266,16 @@ public class BluetoothAlpha extends AppCompatActivity {
                 } else {
                     Toast.makeText(BluetoothAlpha.this, "Scanning finished", Toast.LENGTH_SHORT).show();
                 }
+            } else if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)) {
+                // Handle bond state changes
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                if (device != null) {
+                    int bondState = device.getBondState();
+                    if (bondState == BluetoothDevice.BOND_BONDED) {
+                        // Device is bonded, attempt to connect
+                        connectToDevice(device);
+                    }
+                }
             }
         }
     };
@@ -240,7 +291,7 @@ public class BluetoothAlpha extends AppCompatActivity {
         }
 
         if (bluetoothAdapter != null) {
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
                 // Check if Bluetooth is in the STATE_ON before canceling discovery
                 if (bluetoothAdapter.getState() == BluetoothAdapter.STATE_ON && bluetoothAdapter.isDiscovering()) {
                     cancelBluetoothDiscovery();
@@ -271,6 +322,7 @@ public class BluetoothAlpha extends AppCompatActivity {
         }
     }
 
-    public void next(View view) { startActivity(new Intent(this, WelcomeActivity.class));}
-
+    public void next(View view) {
+        startActivity(new Intent(this, WelcomeActivity.class));
+    }
 }
